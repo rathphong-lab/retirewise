@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RetireWise — วางแผนเกษียณอย่างชาญฉลาด</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0f14;
+    --bg2: #13161e;
+    --bg3: #1a1e28;
+    --bg4: #21263300;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #f0f0f0;
+    --text2: #9a9faf;
+    --text3: #5a6070;
+    --accent: #7edfa6;
+    --accent2: #3abf7a;
+    --accent-glow: rgba(126,223,166,0.15);
+    --blue: #6ab4f5;
+    --blue-glow: rgba(106,180,245,0.12);
+    --red: #f57e7e;
+    --amber: #f5c86a;
+    --card-radius: 16px;
+    --input-radius: 10px;
+  }
+
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── Background grid ─── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ─── Orbs ─── */
+  .orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(90px);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.25;
+  }
+  .orb1 { width: 500px; height: 500px; background: #1a5c35; top: -150px; right: -100px; }
+  .orb2 { width: 400px; height: 400px; background: #0e3d7a; bottom: 100px; left: -100px; }
+
+  /* ─── Layout ─── */
+  .app { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 0 24px 80px; }
+
+  /* ─── Header ─── */
+  header {
+    padding: 48px 0 40px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 48px;
+  }
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--accent); }
+  .header-sub {
+    font-size: 13px;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  /* ─── Two-column layout ─── */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .main-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ─── Panel (input side) ─── */
+  .panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 28px;
+    position: sticky;
+    top: 24px;
+  }
+  .panel-section { margin-bottom: 28px; }
+  .panel-section:last-child { margin-bottom: 0; }
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ─── Input rows ─── */
+  .field { margin-bottom: 18px; }
+  .field:last-child { margin-bottom: 0; }
+  .field-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .field-label {
+    font-size: 13px;
+    color: var(--text2);
+    font-weight: 400;
+  }
+  .field-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    background: rgba(126,223,166,0.08);
+    padding: 2px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(126,223,166,0.2);
+    min-width: 80px;
+    text-align: center;
+  }
+
+  /* ─── Range slider ─── */
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--bg3);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 4px rgba(126,223,166,0.15);
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+  }
+  input[type=range]:hover::-webkit-slider-thumb {
+    box-shadow: 0 0 0 6px rgba(126,223,166,0.25);
+  }
+  input[type=range]::-webkit-slider-runnable-track {
+    background: linear-gradient(to right, var(--accent2) 0%, var(--accent2) var(--pct, 0%), var(--bg3) var(--pct, 0%), var(--bg3) 100%);
+    height: 4px;
+    border-radius: 2px;
+  }
+
+  /* ─── Dashboard (right side) ─── */
+  .dashboard { display: flex; flex-direction: column; gap: 20px; }
+
+  /* ─── Alert banner ─── */
+  .alert-banner {
+    border-radius: var(--card-radius);
+    padding: 14px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid;
+    transition: all 0.3s;
+  }
+  .alert-banner.success {
+    background: rgba(126,223,166,0.08);
+    border-color: rgba(126,223,166,0.25);
+    color: var(--accent);
+  }
+  .alert-banner.danger {
+    background: rgba(245,126,126,0.08);
+    border-color: rgba(245,126,126,0.25);
+    color: var(--red);
+  }
+  .alert-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+  .alert-banner.success .alert-dot { background: var(--accent); }
+  .alert-banner.danger .alert-dot { background: var(--red); }
+
+  /* ─── KPI grid ─── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  .kpi-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 20px 22px;
+    transition: border-color 0.3s, transform 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .kpi-card:hover { border-color: var(--border2); transform: translateY(-1px); }
+  .kpi-card:hover::before { opacity: 1; }
+  .kpi-card.accent-blue::before { background: linear-gradient(90deg, transparent, var(--blue), transparent); }
+  .kpi-card.accent-red::before { background: linear-gradient(90deg, transparent, var(--red), transparent); }
+  .kpi-card.accent-amber::before { background: linear-gradient(90deg, transparent, var(--amber), transparent); }
+  .kpi-label {
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    font-weight: 500;
+  }
+  .kpi-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .kpi-value.green { color: var(--accent); }
+  .kpi-value.blue { color: var(--blue); }
+  .kpi-value.red { color: var(--red); }
+  .kpi-value.amber { color: var(--amber); }
+  .kpi-sub {
+    font-size: 11px;
+    color: var(--text3);
+  }
+
+  /* ─── Insight cards ─── */
+  .insight-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .insight-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+  }
+  .insight-card::after {
+    content: '';
+    position: absolute;
+    bottom: -20px; right: -20px;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    opacity: 0.05;
+  }
+  .insight-card.green-card::after { background: var(--accent); }
+  .insight-card.blue-card::after { background: var(--blue); }
+  .insight-tag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-bottom: 12px;
+  }
+  .insight-tag.green { background: rgba(126,223,166,0.1); color: var(--accent); border: 1px solid rgba(126,223,166,0.2); }
+  .insight-tag.blue { background: rgba(106,180,245,0.1); color: var(--blue); border: 1px solid rgba(106,180,245,0.2); }
+  .insight-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .insight-body {
+    font-size: 12.5px;
+    color: var(--text2);
+    line-height: 1.7;
+  }
+  .insight-highlight { font-weight: 600; }
+  .insight-highlight.green { color: var(--accent); }
+  .insight-highlight.blue { color: var(--blue); }
+  .insight-highlight.red { color: var(--red); }
+  .insight-highlight.amber { color: var(--amber); }
+
+  /* ─── Chart card ─── */
+  .chart-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 24px 28px;
+  }
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .chart-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .chart-legend {
+    display: flex;
+    gap: 20px;
+    font-size: 11px;
+    color: var(--text3);
+  }
+  .legend-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+  .chart-wrap { position: relative; height: 280px; }
+
+  /* ─── Progress bar (needed vs actual) ─── */
+  .progress-section {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 20px 22px;
+  }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text2);
+    margin-bottom: 8px;
+  }
+  .progress-label strong { color: var(--text); font-weight: 600; }
+  .progress-track {
+    height: 8px;
+    background: var(--bg3);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.6s cubic-bezier(.4,0,.2,1);
+  }
+  .progress-fill.green { background: linear-gradient(90deg, var(--accent2), var(--accent)); }
+  .progress-fill.red { background: linear-gradient(90deg, #c03030, var(--red)); }
+  .progress-caption {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 6px;
+    text-align: right;
+  }
+</style>
+</head>
+<body>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+
+<div class="app">
+  <header>
+    <div>
+      <p class="header-sub">เครื่องมือวางแผนการเงิน</p>
+      <div class="logo">Retire<span>Wise</span></div>
+    </div>
+    <div style="text-align:right">
+      <p style="font-size:12px;color:var(--text3)">คำนวณแบบ real-time</p>
+      <p style="font-size:12px;color:var(--text3);margin-top:2px">ปรับ slider เพื่อดูผลลัพธ์</p>
+    </div>
+  </header>
+
+  <div class="main-grid">
+    <!-- ─── Input Panel ─── -->
+    <div class="panel">
+      <div class="panel-section">
+        <p class="section-label">ข้อมูลส่วนตัว</p>
+        <div class="field">
+          <div class="field-header">
+            <span class="field-label">อายุปัจจุบัน</span>
+            <span class="field-value" id="lbl_cur_age">25 ปี</span>
+          </div>
+          <input type="range" id="cur_age" min="20" max="60" step="1" value="25">
+        </div>
+        <div class="field">
+          <div class="field-header">
+            <span class="field-label">อายุเกษียณ</span>
+            <span class="field-value" id="lbl_ret_age">55 ปี</span>
+          </div>
+          <input type="range" id="ret_age" min="40" max="70" step="1" value="55">
+        </div>
+        <div class="field">
+          <div class="field-header">
+            <span class="field-label">อายุขัยที่ตั้งไว้</span>
+            <span class="field-value" id="lbl_die_age">85 ปี</span>
+          </div>
+          <input type="range" id="die_age" min="60" max="100" step="1" value="85">
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <p class="section-label">การออมและค่าใช้จ่าย</p>
+        <div class="field">
+          <div class="field-header">
+            <span class="field-label">เงินเก็บปัจจุบัน</span>
+            <span class="field-value" id="lbl_cur_sav">0 บาท</span>
+          </div>
+          <input type="range" id="cur_sav" min="0" max="5000000" step="50000" value="0">
+        </div>
+        <div class="field">
+          <div class="field-header">
+            <span class="field-label">ออมต่อเดือน</span>
+            <span class="field-value" id="lbl_mon_inv">15,000 บาท</span>
+          </div>
+          <input type="range" id="mon_inv" min="1000" max="100000" step="1000" value="15000">
+        </div>
+        <div class="field">
+          <div class="field-header">
+            <span class="field-label">ค่าใช้จ่าย/เดือน หลังเกษียณ</span>
+            <span class="field-value" id="lbl_mon_exp">30,000 บาท</span>
+          </div>
+          <input type="range" id="mon_exp" min="5000" max="150000" step="5000" value="30000">
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <p class="section-label">สมมติฐานการลงทุน</p>
+        <div class="field">
+          <div class="field-header">
+            <span class="field-label">ผลตอบแทนก่อนเกษียณ</span>
+            <span class="field-value" id="lbl_ret_pre">7.0%/ปี</span>
+          </div>
+          <input type="range" id="ret_pre" min="1" max="20" step="0.5" value="7">
+        </div>
+        <div class="field">
+          <div class="field-header">
+            <span class="field-label">ผลตอบแทนหลังเกษียณ</span>
+            <span class="field-value" id="lbl_ret_post">4.0%/ปี</span>
+          </div>
+          <input type="range" id="ret_post" min="1" max="15" step="0.5" value="4">
+        </div>
+        <div class="field">
+          <div class="field-header">
+            <span class="field-label">อัตราเงินเฟ้อ</span>
+            <span class="field-value" id="lbl_inf_r">3.0%/ปี</span>
+          </div>
+          <input type="range" id="inf_r" min="0" max="10" step="0.5" value="3">
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Dashboard ─── -->
+    <div class="dashboard">
+      <div id="alert-box"></div>
+
+      <!-- KPI Cards -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <p class="kpi-label">เงินที่ต้องมี ณ วันเกษียณ</p>
+          <p class="kpi-value green" id="kpi_needed">—</p>
+          <p class="kpi-sub" id="kpi_needed_sub">—</p>
+        </div>
+        <div class="kpi-card accent-blue">
+          <p class="kpi-label">เงินที่คาดว่าจะมี ณ วันเกษียณ</p>
+          <p class="kpi-value blue" id="kpi_actual">—</p>
+          <p class="kpi-sub" id="kpi_actual_sub">—</p>
+        </div>
+        <div class="kpi-card accent-amber">
+          <p class="kpi-label">ค่าใช้จ่าย/เดือน หลังเกษียณ (จริง)</p>
+          <p class="kpi-value amber" id="kpi_expense">—</p>
+          <p class="kpi-sub" id="kpi_expense_sub">ปรับอัตราเงินเฟ้อแล้ว</p>
+        </div>
+        <div class="kpi-card" id="kpi_gap_card">
+          <p class="kpi-label" id="kpi_gap_label">ส่วนต่าง</p>
+          <p class="kpi-value" id="kpi_gap">—</p>
+          <p class="kpi-sub" id="kpi_gap_sub">—</p>
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="progress-section">
+        <div class="progress-label">
+          <span>ความคืบหน้าสู่เป้าหมาย</span>
+          <strong id="progress_pct">0%</strong>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill green" id="progress_fill" style="width:0%"></div>
+        </div>
+        <p class="progress-caption" id="progress_caption">—</p>
+      </div>
+
+      <!-- Insight cards -->
+      <div class="insight-row">
+        <div class="insight-card green-card">
+          <span class="insight-tag green">เงินออมที่ต้องการ</span>
+          <p class="insight-title">ต้องออมเดือนละเท่าไร?</p>
+          <p class="insight-body" id="insight_saving">—</p>
+        </div>
+        <div class="insight-card blue-card">
+          <span class="insight-tag blue">ผลตอบแทนที่ต้องการ</span>
+          <p class="insight-title">ต้องได้ return เท่าไร?</p>
+          <p class="insight-body" id="insight_return">—</p>
+        </div>
+      </div>
+
+      <!-- Chart -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <p class="chart-title">เส้นทางการเงินสู่วันเกษียณ</p>
+          <div class="chart-legend">
+            <span><span class="legend-dot" style="background:#7edfa6"></span>ช่วงสะสม</span>
+            <span><span class="legend-dot" style="background:#6ab4f5"></span>ช่วงใช้เงิน</span>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="wealthChart" role="img" aria-label="กราฟแสดงเส้นทางการเงินก่อนและหลังเกษียณ"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let chartInstance = null;
+
+function fmt(n) {
+  const abs = Math.abs(n);
+  if (abs >= 1e6) return (n/1e6).toFixed(2) + ' ล้าน';
+  return Math.round(n).toLocaleString('th-TH');
+}
+
+function fmtB(n) { return '฿' + fmt(n); }
+
+function calcNeededAtRetire(monthlyExpAtRetire, postReturn, inflationRate, retireYears) {
+  let balance = 0;
+  let monthly = monthlyExpAtRetire;
+  const mr = postReturn / 12;
+  const mi = inflationRate / 12;
+  for (let i = 0; i < retireYears * 12; i++) {
+    balance = (balance + monthly) / (1 + mr);
+    monthly *= (1 + mi);
+  }
+  return balance;
+}
+
+function calcNeededMonthly(target, currentSav, years, annReturn) {
+  if (years <= 0) return Infinity;
+  const r = annReturn / 12;
+  const n = years * 12;
+  const fvExisting = currentSav * Math.pow(1 + r, n);
+  const rem = target - fvExisting;
+  if (rem <= 0) return 0;
+  if (r < 1e-9) return rem / n;
+  return rem * r / (Math.pow(1 + r, n) - 1);
+}
+
+function calcNeededReturn(target, currentSav, monthlyInv, years) {
+  if (years <= 0) return null;
+  const n = years * 12;
+  let lo = 0, hi = 0.40;
+  for (let i = 0; i < 120; i++) {
+    const mid = (lo + hi) / 2;
+    const r = mid / 12;
+    let fv = r < 1e-9
+      ? currentSav + monthlyInv * n
+      : currentSav * Math.pow(1+r,n) + monthlyInv * ((Math.pow(1+r,n)-1)/r);
+    if (fv < target) lo = mid; else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+function updateSliderFill(el) {
+  const min = +el.min, max = +el.max, val = +el.value;
+  const pct = ((val - min) / (max - min)) * 100;
+  el.style.setProperty('--pct', pct + '%');
+}
+
+function calculate() {
+  const curAge  = +document.getElementById('cur_age').value;
+  const retAge  = +document.getElementById('ret_age').value;
+  const dieAge  = +document.getElementById('die_age').value;
+  const curSav  = +document.getElementById('cur_sav').value;
+  const monInv  = +document.getElementById('mon_inv').value;
+  const monExp  = +document.getElementById('mon_exp').value;
+  const retPre  = +document.getElementById('ret_pre').value / 100;
+  const retPost = +document.getElementById('ret_post').value / 100;
+  const infR    = +document.getElementById('inf_r').value / 100;
+
+  const yrsToRet = Math.max(retAge - curAge, 0);
+  const yrsInRet = Math.max(dieAge - retAge, 0);
+  const expAtRetire = monExp * Math.pow(1 + infR, yrsToRet);
+
+  const needed = calcNeededAtRetire(expAtRetire, retPost, infR, yrsInRet);
+  const neededMonthly = calcNeededMonthly(needed, curSav, yrsToRet, retPre);
+  const neededReturn  = calcNeededReturn(needed, curSav, monInv, yrsToRet);
+
+  // Simulate balance
+  const ages = [], balances = [];
+  let bal = curSav;
+  let runOutAge = null;
+
+  for (let age = curAge; age <= dieAge; age++) {
+    ages.push(age);
+    balances.push(Math.max(bal, 0));
+    if (age < retAge) {
+      const r = retPre / 12;
+      for (let m = 0; m < 12; m++) bal = bal * (1 + r) + monInv;
+    } else if (age < dieAge) {
+      const expYear = expAtRetire * 12 * Math.pow(1 + infR, age - retAge);
+      bal = (bal - expYear) * (1 + retPost);
+      if (bal < 0 && runOutAge === null) runOutAge = age;
+    }
+  }
+
+  const balAtRetire = balances[retAge - curAge] || 0;
+  const surplus = balAtRetire - needed;
+  const isOk = surplus >= 0;
+  const pct = Math.min(Math.round((balAtRetire / needed) * 100), 999);
+
+  // Alert
+  const alertEl = document.getElementById('alert-box');
+  if (runOutAge !== null) {
+    alertEl.innerHTML = `<div class="alert-banner danger"><div class="alert-dot"></div>เงินจะหมดในช่วงอายุ <strong>${runOutAge} ปี</strong> — ก่อนอายุขัยที่ตั้งไว้ ${dieAge} ปี</div>`;
+  } else if (isOk) {
+    alertEl.innerHTML = `<div class="alert-banner success"><div class="alert-dot"></div>แผนนี้ครอบคลุมค่าใช้จ่ายถึงอายุ <strong>${dieAge} ปี</strong> ได้เพียงพอ</div>`;
+  } else {
+    alertEl.innerHTML = `<div class="alert-banner danger"><div class="alert-dot"></div>เงินออมไม่เพียงพอ — ปรับเพิ่มเงินออมหรือปรับเป้าหมาย</div>`;
+  }
+
+  // KPIs
+  document.getElementById('kpi_needed').textContent = fmtB(needed);
+  document.getElementById('kpi_needed_sub').textContent = `ครอบคลุม ${yrsInRet} ปีหลังเกษียณ`;
+  document.getElementById('kpi_actual').textContent = fmtB(balAtRetire);
+  document.getElementById('kpi_actual_sub').textContent = `ออม ${yrsToRet} ปี ที่ ${(retPre*100).toFixed(1)}%/ปี`;
+  document.getElementById('kpi_expense').textContent = fmtB(expAtRetire);
+  document.getElementById('kpi_expense_sub').textContent = `ปรับเงินเฟ้อ ${yrsToRet} ปี ที่ ${(infR*100).toFixed(1)}%`;
+  
+  const gapCard = document.getElementById('kpi_gap_card');
+  gapCard.className = 'kpi-card ' + (isOk ? '' : 'accent-red');
+  document.getElementById('kpi_gap_label').textContent = isOk ? 'ส่วนเกิน' : 'ขาดอีก';
+  const gapEl = document.getElementById('kpi_gap');
+  gapEl.className = 'kpi-value ' + (isOk ? 'green' : 'red');
+  gapEl.textContent = fmtB(Math.abs(surplus));
+  document.getElementById('kpi_gap_sub').textContent = isOk ? 'มากกว่าเป้าหมาย' : 'เงินไม่พอตามเป้า';
+
+  // Progress bar
+  document.getElementById('progress_pct').textContent = pct + '%';
+  const fill = document.getElementById('progress_fill');
+  fill.style.width = Math.min(pct, 100) + '%';
+  fill.className = 'progress-fill ' + (isOk ? 'green' : 'red');
+  document.getElementById('progress_caption').textContent =
+    isOk ? `มีเงินมากกว่าเป้า ${pct}%` : `ถึงเป้าเพียง ${pct}% — ต้องปรับแผน`;
+
+  // Insight: saving
+  const savEl = document.getElementById('insight_saving');
+  if (yrsToRet <= 0) {
+    savEl.innerHTML = `<span class="insight-highlight">ถึงอายุเกษียณแล้ว</span>`;
+  } else if (neededMonthly <= 0) {
+    savEl.innerHTML = `เงินเก็บปัจจุบัน <span class="insight-highlight green">เพียงพอแล้ว</span> ไม่ต้องออมเพิ่ม`;
+  } else {
+    const diff = monInv - neededMonthly;
+    const color = diff >= 0 ? 'green' : 'red';
+    const msg = diff >= 0
+      ? `ออมเกินเป้า <span class="insight-highlight green">${fmtB(diff)}/เดือน</span>`
+      : `ออมน้อยกว่าเป้า <span class="insight-highlight red">${fmtB(Math.abs(diff))}/เดือน</span>`;
+    savEl.innerHTML = `ต้องออม <span class="insight-highlight ${color}">${fmtB(neededMonthly)}/เดือน</span> — คุณออม ${fmtB(monInv)}/เดือน · ${msg}`;
+  }
+
+  // Insight: return
+  const retEl = document.getElementById('insight_return');
+  if (neededReturn !== null) {
+    const rPct = (neededReturn * 100).toFixed(1);
+    const feasible = neededReturn <= 0.12;
+    const color = feasible ? 'green' : (neededReturn <= 0.18 ? 'amber' : 'red');
+    const comment = neededReturn <= 0.07
+      ? 'ทำได้ด้วยพอร์ตพันธบัตร/กองทุนผสม'
+      : neededReturn <= 0.12
+        ? 'ทำได้ด้วยกองทุนหุ้นระยะยาว (SET/S&P500)'
+        : neededReturn <= 0.18
+          ? 'ท้าทาย — ต้องรับความเสี่ยงสูง'
+          : 'สูงเกินจริง — ควรเพิ่มเงินออม';
+    retEl.innerHTML = `ด้วยเงินออม ${fmtB(monInv)}/เดือน ต้องได้ <span class="insight-highlight ${color}">${rPct}%/ปี</span> · ${comment}`;
+  } else {
+    retEl.innerHTML = `<span class="insight-highlight">ตั้งอายุเกษียณให้มากกว่าอายุปัจจุบัน</span>`;
+  }
+
+  // Chart
+  const accData = balances.map((b, i) => ages[i] <= retAge ? b : null);
+  const retData = balances.map((b, i) => ages[i] >= retAge ? b : null);
+
+  if (chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(document.getElementById('wealthChart'), {
+    type: 'line',
+    data: {
+      labels: ages,
+      datasets: [
+        {
+          label: 'ช่วงสะสม',
+          data: accData,
+          borderColor: '#7edfa6',
+          backgroundColor: 'rgba(126,223,166,0.06)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 0,
+          borderWidth: 2.5,
+          spanGaps: false
+        },
+        {
+          label: 'ช่วงใช้เงิน',
+          data: retData,
+          borderColor: '#6ab4f5',
+          backgroundColor: 'rgba(106,180,245,0.06)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 0,
+          borderWidth: 2.5,
+          borderDash: [6,3],
+          spanGaps: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1a1e28',
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 1,
+          titleColor: '#9a9faf',
+          bodyColor: '#f0f0f0',
+          padding: 10,
+          callbacks: {
+            label: ctx => ' ฿' + Math.round(ctx.raw).toLocaleString('th-TH')
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#5a6070', font: { size: 11 }, maxTicksLimit: 14 },
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          border: { color: 'rgba(255,255,255,0.07)' }
+        },
+        y: {
+          ticks: {
+            color: '#5a6070',
+            font: { size: 11 },
+            callback: v => fmt(v)
+          },
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          border: { color: 'rgba(255,255,255,0.07)' },
+          min: 0
+        }
+      }
+    }
+  });
+}
+
+// Slider binding
+const sliderConfig = {
+  cur_age:  v => v + ' ปี',
+  ret_age:  v => v + ' ปี',
+  die_age:  v => v + ' ปี',
+  cur_sav:  v => parseInt(v).toLocaleString('th-TH') + ' บาท',
+  mon_inv:  v => parseInt(v).toLocaleString('th-TH') + ' บาท',
+  mon_exp:  v => parseInt(v).toLocaleString('th-TH') + ' บาท',
+  ret_pre:  v => parseFloat(v).toFixed(1) + '%/ปี',
+  ret_post: v => parseFloat(v).toFixed(1) + '%/ปี',
+  inf_r:    v => parseFloat(v).toFixed(1) + '%/ปี',
+};
+
+Object.keys(sliderConfig).forEach(id => {
+  const el = document.getElementById(id);
+  updateSliderFill(el);
+  el.addEventListener('input', function() {
+    document.getElementById('lbl_' + id).textContent = sliderConfig[id](this.value);
+    updateSliderFill(this);
+    calculate();
+  });
+});
+
+calculate();
+</script>
+</body>
+</html>
